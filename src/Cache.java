@@ -1,3 +1,6 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,11 +18,7 @@ public class Cache {
         numLeituras = 0;
         memoriaPrincipal = new int[32];
     }
-
-    // Realiza a leitura de um endereço na memória cache.
-    // Verifica se o endereço está presente na cache (acerto) ou não (falha)
-    // Atualiza o contador de acertos (numHits) ou falhas (numMisses)
-    // chama o método atualizarCache se houver uma falha.
+    //Verifica se deu cache hit ou miss, se deu cache miss ele atualiza o cache
     public void lerEndereco(int endereco) {
         numLeituras++;
         boolean acerto = false;
@@ -38,19 +37,17 @@ public class Cache {
         } else {
             System.out.println("Cache miss para o endereço: " + endereco);
             numMisses++;
-            atualizarCache(endereco, lerMemoriaPrincipal(endereco));
+            atualizarCache(endereco, lerDaMemoriaPrincipal(endereco));
         }
     }
 
-    private int lerMemoriaPrincipal(int endereco) {
+    private int lerDaMemoriaPrincipal(int endereco) {
         int indice = endereco % 32;
         return memoriaPrincipal[indice];
     }
-
-    // Atualiza a memória cache com o dado lido da memória principal. Se a cache
-    // estiver cheia, utiliza o algoritmo de substituição LRU
-    // para remover a linha recentemente usada e inserir a nova linha.
-
+    
+    //Cria uma nova cache line, se o numero for igual a 8, remove uma linha da cache usando LRU
+    //Adiciona a linha criada no cache
     public void atualizarCache(int endereco, int dados) {
         CacheLine novaLinha = new CacheLine(endereco, dados, System.currentTimeMillis());
 
@@ -62,21 +59,21 @@ public class Cache {
         exibirCache();
     }
     
-    //Remove a linha do cache recentemente usada
+    //Remove a cache line antiga
     private void removerLinhaLRU() {
         long menorTempoAcesso = Long.MAX_VALUE;
-        CacheLine menosRecente = null;
+        CacheLine antiga = null;
 
         for (CacheLine linha : linhas) {
             if (linha.getUltimoAcesso() < menorTempoAcesso) {
                 menorTempoAcesso = linha.getUltimoAcesso();
-                menosRecente = linha;
+                antiga = linha;
             }
         }
 
-        linhas.remove(menosRecente);
+        linhas.remove(antiga);
     }
-    // Exibe o conteúdo atual da memória cache, mostrando a tag e os dados de cada linha.
+
     public void exibirCache() {
         System.out.println("Conteúdo da cache:");
 
@@ -87,12 +84,24 @@ public class Cache {
         System.out.println();
     }
     
-    // Exibe o conteúdo atual da memória cache, mostrando a tag e os dados de cada linha.
+    //Pegando conteudo da memoria principal e armazenando em memoriaPrincipal no formato decimal
+    public void carregarMemoriaPrincipal(String arquivo) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(arquivo));
+        String linha;
+        int indice = 0;
+
+        while ((linha = reader.readLine()) != null) {
+            memoriaPrincipal[indice] = Integer.parseInt(linha, 2);
+            indice++;
+        }
+
+        reader.close();
+    }
+
     public double calcularTaxaMiss() {
         return (double) numMisses / numLeituras;
     }
-    
-    // Calcula a taxa de acertos (cache hits) em relação ao número total de leituras.
+
     public double calcularTaxaHit() {
         return (double) numHits / numLeituras;
     }
@@ -107,10 +116,5 @@ public class Cache {
 
     public int getNumLeituras() {
         return numLeituras;
-    }
-    
-    // Define a memória principal do sistema, que será consultada em caso de falha na cache.
-    public void setMemoriaPrincipal(int[] memoriaPrincipal) {
-        this.memoriaPrincipal = memoriaPrincipal;
     }
 }
